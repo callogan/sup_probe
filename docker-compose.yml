@@ -1,0 +1,43 @@
+version: "3.9"
+
+x-app: &default-app
+  build: .
+  restart: always
+
+x-env: &env
+  env_file:
+    - .env
+
+services:
+  api:
+    <<: [*default-app, *env]
+    container_name: sup-back
+    ports:
+      - 8000:8000
+    volumes:
+      - .:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    environment:
+        - POSTGRES_DB=${DB_NAME}
+        - POSTGRES_USER=${DB_USER}
+        - POSTGRES_PASSWORD=${DB_PASSWORD}
+        - POSTGRES_HOST=${DB_HOST}
+        - POSTGRES_PORT=${DB_PORT}
+    container_name: sup-db
+    image: postgres:15.3-alpine
+    ports:
+      - 5432:5432
+    healthcheck:
+      test: pg_isready -d ${DB_NAME} -U ${DB_USER}
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes:
+      - sup_pg_data:/var/lib/postgresql/data
+
+volumes:
+  sup_pg_data:
